@@ -19,6 +19,7 @@ from modules.daemon import handle_daemon_menu
 from modules.utilities import handle_utilities_menu
 from modules.search import handle_search_menu
 from modules.cloud import handle_cloud_menu
+from modules.queue_manager import handle_queue_menu
 
 # Define custom styling for questionary to match a sleek Telegram/Cyberdrop theme
 custom_style = Style([
@@ -50,7 +51,7 @@ def format_media_types(types_list):
 def print_header():
     """Clears the console and prints the Telegram Downloader header."""
     os.system('cls' if os.name == 'nt' else 'clear')
-    print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
+    print("\033[1;36mTelegram Downloader (V3.8.4)\033[0m")
     
     # Read download dir and allowed types to show status
     config = get_config()
@@ -478,128 +479,182 @@ async def main():
 
     # 3. CLI Main Loop
     while True:
-        print_header()
-        
-        choice = await questionary.select(
-            "What would you like to do:",
-            choices=[
-                "Single Download",
-                "Range Download",
-                "Full Download",
-                "Live Monitor Daemon",
-                "Media Utilities...",
-                "Cloud Sync & Mirroring...",
-                "Offline Search / History",
-                "Config",
-                "Exit",
-                questionary.Separator(),
-                questionary.Separator("ARROW KEYS: Navigate | ENTER: Select | Ctrl+C: Cancel/Exit")
-            ],
-            instruction="",
-            style=custom_style
-        ).ask_async()
-        
-        if choice is None or choice == "Exit":
-            print("\n🔌 \033[1;34mDisconnecting from Telegram... Goodbye!\033[0m")
-            await client.disconnect()
-            break
+        try:
+            print_header()
             
-        if choice == "Single Download":
-            print(f"\n{SUBTITLE_STYLE}")
-            print(" \033[1;35mMODE: SINGLE FILE DOWNLOAD\033[0m ")
-            print(f"{SUBTITLE_STYLE}")
-            link = await questionary.text(
-                "Enter message link (e.g. https://t.me/c/123/45):",
+            # Calculate dynamic schedule countdown if active
+            from modules.queue_manager import get_scheduled_time_left, update_menu_countdown_loop, SchedulerTriggeredException
+            time_left = get_scheduled_time_left()
+            init_title = f"Scheduled Queue Manager (⌛ {time_left})" if time_left else "Scheduled Queue Manager..."
+            queue_choice_obj = questionary.Choice(title=init_title, value="Scheduled Queue Manager...")
+            
+            ticker_task = asyncio.create_task(update_menu_countdown_loop(queue_choice_obj, "Scheduled Queue Manager"))
+            
+            choice = await questionary.select(
+                "What would you like to do:",
+                choices=[
+                    "Single Download",
+                    "Range Download",
+                    "Full Download",
+                    "Live Monitor Daemon",
+                    queue_choice_obj,
+                    "Media Utilities...",
+                    "Cloud Sync & Mirroring...",
+                    "History & Statistics...",
+                    "Config",
+                    "Exit",
+                    questionary.Separator(),
+                    questionary.Separator("ARROW KEYS: Navigate | ENTER: Select | Ctrl+C: Cancel/Exit")
+                ],
+                instruction="",
                 style=custom_style
             ).ask_async()
             
-            if not link:
-                print("\n⚠️ \033[1;33mOperation cancelled: link cannot be empty.\033[0m")
-                await asyncio.sleep(1.5)
-                continue
+            ticker_task.cancel()
             
-            print("\n🚀 \033[1;36mStarting download...\033[0m")
-            await download_single(client, link, None)
+            if choice is None or choice == "Exit":
+                print("\n🔌 \033[1;34mDisconnecting from Telegram... Goodbye!\033[0m")
+                await client.disconnect()
+                break
+                
+            res = None
+            if choice == "Single Download":
+                print(f"\n{SUBTITLE_STYLE}")
+                print(" \033[1;35mMODE: SINGLE FILE DOWNLOAD\033[0m ")
+                print(f"{SUBTITLE_STYLE}")
+                link = await questionary.text(
+                    "Enter message link (e.g. https://t.me/c/123/45):",
+                    style=custom_style
+                ).ask_async()
+                
+                if link == "SCHEDULER_TRIGGERED":
+                    raise SchedulerTriggeredException()
+                elif not link:
+                    print("\n⚠️ \033[1;33mOperation cancelled: link cannot be empty.\033[0m")
+                    await asyncio.sleep(1.5)
+                    continue
+                else:
+                    # Confirm filters before starting
+                    if not await confirm_filters_and_start("Single Download"):
+                        print("\n⚠️ \033[1;33mDownload cancelled.\033[0m")
+                        await asyncio.sleep(1.5)
+                        continue
+                        
+                    print("\n🚀 \033[1;36mStarting download...\033[0m")
+                    await download_single(client, link)
+                    input("\n⌨️ Press Enter to return to menu...")
+                
+            elif choice == "Range Download":
+                print(f"\n{SUBTITLE_STYLE}")
+                print(" \033[1;35mMODE: RANGE OF MESSAGES DOWNLOAD\033[0m ")
+                print(f"{SUBTITLE_STYLE}")
+                start_link = await questionary.text(
+                    "Enter START message link (e.g. https://t.me/c/123/10):",
+                    style=custom_style
+                ).ask_async()
+                
+                if start_link == "SCHEDULER_TRIGGERED":
+                    raise SchedulerTriggeredException()
+                elif not start_link:
+                    print("\n⚠️ \033[1;33mOperation cancelled: start link cannot be empty.\033[0m")
+                    await asyncio.sleep(1.5)
+                    continue
+                else:
+                    end_link = await questionary.text(
+                        "Enter END message link (e.g. https://t.me/c/123/15):",
+                        style=custom_style
+                    ).ask_async()
+                    
+                    if end_link == "SCHEDULER_TRIGGERED":
+                        raise SchedulerTriggeredException()
+                    elif not end_link:
+                        print("\n⚠️ \033[1;33mOperation cancelled: end link cannot be empty.\033[0m")
+                        await asyncio.sleep(1.5)
+                        continue
+                    else:
+                        # Confirm filters before starting
+                        if not await confirm_filters_and_start("Range Download"):
+                            print("\n⚠️ \033[1;33mDownload cancelled.\033[0m")
+                            await asyncio.sleep(1.5)
+                            continue
+                            
+                        print("\n🚀 \033[1;36mStarting range download...\033[0m")
+                        await download_range(client, start_link, end_link, None)
+                        input("\n⌨️ Press Enter to return to menu...")
+                
+            elif choice == "Full Download":
+                print(f"\n{SUBTITLE_STYLE}")
+                print(" \033[1;35mMODE: ENTIRE CHAT DOWNLOAD\033[0m ")
+                print(f"{SUBTITLE_STYLE}")
+                chat_input = await questionary.text(
+                    "Enter chat username, link, or ID:",
+                    style=custom_style
+                ).ask_async()
+                
+                if chat_input == "SCHEDULER_TRIGGERED":
+                    raise SchedulerTriggeredException()
+                elif not chat_input:
+                    print("\n⚠️ \033[1;33mOperation cancelled: chat input cannot be empty.\033[0m")
+                    await asyncio.sleep(1.5)
+                    continue
+                else:
+                    limit_input = await questionary.text(
+                        "Enter maximum messages to scan (leave empty for ALL):",
+                        style=custom_style
+                    ).ask_async()
+                    
+                    if limit_input == "SCHEDULER_TRIGGERED":
+                        raise SchedulerTriggeredException()
+                    else:
+                        limit = None
+                        if limit_input:
+                            try:
+                                limit = int(limit_input)
+                            except ValueError:
+                                print("⚠️ \033[1;33mInvalid number. Proceeding with downloading ALL messages.\033[0m")
+                        
+                        # Confirm filters before starting
+                        if not await confirm_filters_and_start("Full Download"):
+                            print("\n⚠️ \033[1;33mDownload cancelled.\033[0m")
+                            await asyncio.sleep(1.5)
+                            continue
+                            
+                        print("\n🚀 \033[1;36mStarting full chat scan...\033[0m")
+                        await download_full(client, chat_input, None, limit)
+                        input("\n⌨️ Press Enter to return to menu...")
+                
+            elif choice == "Live Monitor Daemon":
+                await handle_daemon_menu(client, custom_style)
+                
+            elif choice and choice.startswith("Scheduled Queue Manager"):
+                await handle_queue_menu(client, custom_style)
+                
+            elif choice == "Media Utilities...":
+                await handle_utilities_menu(client, custom_style)
+                
+            elif choice == "Cloud Sync & Mirroring...":
+                await handle_cloud_menu(client, custom_style)
+                
+            elif choice == "History & Statistics...":
+                await handle_search_menu(custom_style)
+                
+            elif choice == "Config":
+                await handle_config_menu()
+                
+        except SchedulerTriggeredException:
+            # Clean up ticker task if it is still running
+            try:
+                ticker_task.cancel()
+            except Exception:
+                pass
+                
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print("\033[1;36mTelegram Downloader (V3.8.4)\033[0m")
+            print("\033[1;35m--- SCHEDULER QUEUE RUN ---\033[0m\n")
+            print("⏰ \033[1;36mScheduled time reached! Starting download queue...\033[0m\n")
+            from modules.queue_manager import process_queue
+            await process_queue(client)
             input("\n⌨️ Press Enter to return to menu...")
-            
-        elif choice == "Range Download":
-            print(f"\n{SUBTITLE_STYLE}")
-            print(" \033[1;35mMODE: RANGE OF MESSAGES DOWNLOAD\033[0m ")
-            print(f"{SUBTITLE_STYLE}")
-            start_link = await questionary.text(
-                "Enter START message link:",
-                style=custom_style
-            ).ask_async()
-            end_link = await questionary.text(
-                "Enter END message link:",
-                style=custom_style
-            ).ask_async()
-            
-            if not start_link or not end_link:
-                print("\n⚠️ \033[1;33mOperation cancelled: links cannot be empty.\033[0m")
-                await asyncio.sleep(1.5)
-                continue
-                
-            # Confirm filters before starting
-            if not await confirm_filters_and_start("Range Download"):
-                print("\n⚠️ \033[1;33mDownload cancelled.\033[0m")
-                await asyncio.sleep(1.5)
-                continue
-                
-            print("\n🚀 \033[1;36mStarting range download...\033[0m")
-            await download_range(client, start_link, end_link, None)
-            input("\n⌨️ Press Enter to return to menu...")
-            
-        elif choice == "Full Download":
-            print(f"\n{SUBTITLE_STYLE}")
-            print(" \033[1;35mMODE: ENTIRE CHAT DOWNLOAD\033[0m ")
-            print(f"{SUBTITLE_STYLE}")
-            chat_input = await questionary.text(
-                "Enter chat username, link, or ID:",
-                style=custom_style
-            ).ask_async()
-            if not chat_input:
-                print("\n⚠️ \033[1;33mOperation cancelled: chat input cannot be empty.\033[0m")
-                await asyncio.sleep(1.5)
-                continue
-                
-            # Limit check
-            limit_input = await questionary.text(
-                "Enter maximum messages to scan (leave empty for ALL):",
-                style=custom_style
-            ).ask_async()
-            
-            limit = None
-            if limit_input:
-                try:
-                    limit = int(limit_input)
-                except ValueError:
-                    print("⚠️ \033[1;33mInvalid number. Proceeding with downloading ALL messages.\033[0m")
-            
-            # Confirm filters before starting
-            if not await confirm_filters_and_start("Full Download"):
-                print("\n⚠️ \033[1;33mDownload cancelled.\033[0m")
-                await asyncio.sleep(1.5)
-                continue
-                
-            print("\n🚀 \033[1;36mStarting full chat scan...\033[0m")
-            await download_full(client, chat_input, None, limit)
-            input("\n⌨️ Press Enter to return to menu...")
-            
-        elif choice == "Live Monitor Daemon":
-            await handle_daemon_menu(client, custom_style)
-            
-        elif choice == "Media Utilities...":
-            await handle_utilities_menu(client, custom_style)
-            
-        elif choice == "Cloud Sync & Mirroring...":
-            await handle_cloud_menu(client, custom_style)
-            
-        elif choice == "Offline Search / History":
-            await handle_search_menu(custom_style)
-            
-        elif choice == "Config":
-            await handle_config_menu()
 
 if __name__ == "__main__":
     # Ensure Windows asyncio policy is compatible

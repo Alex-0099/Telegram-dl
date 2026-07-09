@@ -24,7 +24,7 @@ async def handle_cloud_menu(client, custom_style):
     """Interactive submenu to manage Cloud Backup & TG Mirroring."""
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
+        print("\033[1;36mTelegram Downloader (V3.8.4)\033[0m")
         print("\033[1;35m--- CLOUD SYNC & TG MIRRORING ---\033[0m")
         
         config = get_config()
@@ -66,6 +66,9 @@ async def handle_cloud_menu(client, custom_style):
             style=custom_style
         ).ask_async()
         
+        if choice == "SCHEDULER_TRIGGERED":
+            return "SCHEDULER_TRIGGERED"
+            
         if choice is None or choice == "Back to main menu":
             break
             
@@ -79,6 +82,8 @@ async def handle_cloud_menu(client, custom_style):
             if not cloud_enabled and not cloud_remote:
                 # Prompt to set remote name immediately
                 remote_input = await questionary.text("Enter Rclone remote name (run 'rclone config' in cmd to create one):", style=custom_style).ask_async()
+                if remote_input == "SCHEDULER_TRIGGERED":
+                    return "SCHEDULER_TRIGGERED"
                 if remote_input and remote_input.strip():
                     config["cloud_rclone_remote"] = remote_input.strip()
                     config["cloud_upload_enabled"] = True
@@ -89,14 +94,20 @@ async def handle_cloud_menu(client, custom_style):
                 
         elif choice == "Configure Rclone Remote Details":
             remote = await questionary.text("Enter Rclone remote name (e.g. gdrive):", default=cloud_remote, style=custom_style).ask_async()
+            if remote == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             if remote is not None:
                 config["cloud_rclone_remote"] = remote.strip()
                 
             path = await questionary.text("Enter cloud target folder path:", default=cloud_path, style=custom_style).ask_async()
+            if path == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             if path is not None:
                 config["cloud_remote_path"] = path.strip()
                 
             del_local = await questionary.confirm("Delete local downloaded file after successful cloud upload?", default=delete_local, style=custom_style).ask_async()
+            if del_local == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             if del_local is not None:
                 config["cloud_delete_local_after_upload"] = del_local
                 
@@ -107,6 +118,8 @@ async def handle_cloud_menu(client, custom_style):
         elif choice == "Toggle Telegram Mirroring":
             if not tg_enabled and not tg_target:
                 target_input = await questionary.text("Enter backup channel ID or @username (e.g. -100123456789):", style=custom_style).ask_async()
+                if target_input == "SCHEDULER_TRIGGERED":
+                    return "SCHEDULER_TRIGGERED"
                 if target_input and target_input.strip():
                     config["tg_mirror_target"] = target_input.strip()
                     config["tg_mirror_enabled"] = True
@@ -117,6 +130,8 @@ async def handle_cloud_menu(client, custom_style):
                 
         elif choice == "Configure Telegram Mirror Target":
             target_input = await questionary.text("Enter backup channel ID or @username (e.g. -100123456789):", default=tg_target, style=custom_style).ask_async()
+            if target_input == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             if target_input is not None:
                 config["tg_mirror_target"] = target_input.strip()
                 update_config(config)

@@ -22,7 +22,7 @@ async def handle_daemon_menu(client, custom_style):
     """Sub-menu to manage the Live Monitor Daemon."""
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
+        print("\033[1;36mTelegram Downloader (V3.8.4)\033[0m")
         print("\033[1;35m--- LIVE MONITOR DAEMON ---\033[0m")
         
         config = get_config()
@@ -55,6 +55,9 @@ async def handle_daemon_menu(client, custom_style):
             style=custom_style
         ).ask_async()
         
+        if choice == "SCHEDULER_TRIGGERED":
+            return "SCHEDULER_TRIGGERED"
+            
         if choice is None or choice == "Back to main menu":
             break
             
@@ -66,16 +69,22 @@ async def handle_daemon_menu(client, custom_style):
             await run_live_monitor(client, monitored)
             
         elif choice == "Add Chats to Monitor":
-            await add_monitored_chat(client, config, custom_style)
+            res = await add_monitored_chat(client, config, custom_style)
+            if res == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             
         elif choice == "Remove Chats from Monitor":
-            await remove_monitored_chat(config, custom_style)
+            res = await remove_monitored_chat(config, custom_style)
+            if res == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
 
 async def add_monitored_chat(client, config, custom_style):
     chat_input = await questionary.text(
         "Enter chat username, invite link, or numeric ID to monitor:",
         style=custom_style
     ).ask_async()
+    if chat_input == "SCHEDULER_TRIGGERED":
+        return "SCHEDULER_TRIGGERED"
     if not chat_input:
         return
         
@@ -154,6 +163,9 @@ async def remove_monitored_chat(config, custom_style):
         choices=choices,
         style=custom_style
     ).ask_async()
+    
+    if to_remove == "SCHEDULER_TRIGGERED":
+        return "SCHEDULER_TRIGGERED"
     
     if to_remove is None or to_remove == "Cancel":
         return

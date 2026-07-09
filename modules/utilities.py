@@ -64,10 +64,15 @@ async def select_chat_folder(config, custom_style):
         style=custom_style
     ).ask_async()
     
+    if choice == "SCHEDULER_TRIGGERED":
+        return "SCHEDULER_TRIGGERED"
+        
     if choice == "CANCEL" or choice is None:
         return None
     elif choice == "CUSTOM":
         custom_path = await questionary.text("Enter absolute folder path:", style=custom_style).ask_async()
+        if custom_path == "SCHEDULER_TRIGGERED":
+            return "SCHEDULER_TRIGGERED"
         if custom_path and os.path.isdir(custom_path.strip()):
             return custom_path.strip()
         else:
@@ -80,7 +85,7 @@ async def handle_utilities_menu(client, custom_style):
     """Sleek sub-menu to manage media utility tools."""
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
+        print("\033[1;36mTelegram Downloader (V3.8.4)\033[0m")
         print("\033[1;35m--- MEDIA & FILE UTILITIES ---\033[0m")
         
         config = get_config()
@@ -108,6 +113,9 @@ async def handle_utilities_menu(client, custom_style):
             style=custom_style
         ).ask_async()
         
+        if choice == "SCHEDULER_TRIGGERED":
+            return "SCHEDULER_TRIGGERED"
+            
         if choice is None or choice == "Back to main menu":
             break
             
@@ -118,25 +126,39 @@ async def handle_utilities_menu(client, custom_style):
             await asyncio.sleep(1.5)
             
         elif choice == "Extract Audio from Video (Select File)":
-            await run_audio_extractor_interactive(config, custom_style)
+            res = await run_audio_extractor_interactive(config, custom_style)
+            if res == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             
         elif choice == "Convert WebP Sticker to PNG (Select File)":
-            await run_sticker_converter_interactive(config, custom_style)
+            res = await run_sticker_converter_interactive(config, custom_style)
+            if res == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             
         elif choice == "Advanced Media Converters (ffmpeg)...":
-            await run_advanced_converters_interactive(config, custom_style)
+            res = await run_advanced_converters_interactive(config, custom_style)
+            if res == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             
         elif choice == "Scan for Duplicate Media...":
-            await run_duplicate_checker(custom_style)
+            res = await run_duplicate_checker(custom_style)
+            if res == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             
         elif choice == "Batch Rename Files":
-            await run_batch_renamer(config, custom_style)
+            res = await run_batch_renamer(config, custom_style)
+            if res == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             
         elif choice == "Organize Folder Files (by Type / message ID)":
-            await run_folder_organizer(config, custom_style)
+            res = await run_folder_organizer(config, custom_style)
+            if res == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
             
         elif choice == "Password-Protect / Batch Archive Folder":
-            await run_batch_archiver(config, custom_style)
+            res = await run_batch_archiver(config, custom_style)
+            if res == "SCHEDULER_TRIGGERED":
+                return "SCHEDULER_TRIGGERED"
 
 # ==========================================
 # 🔊 AUDIO EXTRACTOR ENGINE
@@ -151,6 +173,8 @@ async def run_audio_extractor_interactive(config, custom_style):
         return
         
     chat_folder = await select_chat_folder(config, custom_style)
+    if chat_folder == "SCHEDULER_TRIGGERED":
+        return "SCHEDULER_TRIGGERED"
     if not chat_folder:
         return
         
@@ -167,6 +191,9 @@ async def run_audio_extractor_interactive(config, custom_style):
         style=custom_style
     ).ask_async()
     
+    if to_extract == "SCHEDULER_TRIGGERED":
+        return "SCHEDULER_TRIGGERED"
+        
     if to_extract is None or to_extract == "Cancel":
         return
         
@@ -787,7 +814,7 @@ async def run_advanced_converters_interactive(config, custom_style):
         
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
+        print("\033[1;36mTelegram Downloader (V3.8.4)\033[0m")
         print("\033[1;35m--- ADVANCED MEDIA CONVERTERS ---\033[0m\n")
         
         choice = await questionary.select(
