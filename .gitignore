@@ -21,3 +21,6 @@ config.json
 *.jpg
 *.jpeg
 
+
+# Tests
+test.txt

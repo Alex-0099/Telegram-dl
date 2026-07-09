@@ -100,12 +100,4 @@ from any folder on your computer!
 ## ⚠️ Notes & Security Best Practices
 
 * **Rate Limits**: If you run a **Full Download** on large channels with thousands of items, Telegram may trigger a `FloodWait`. The script will automatically sleep and resume, but it is best to respect rate limits or cap the download speed in the Config menu.
-* **Security Warnings**: 
-  > [!CAUTION]
-  > **DO NOT** commit or upload the following files to GitHub or any public repository:
-  > * `.env` (Contains your secret Telegram API keys)
-  > * `*.session` and `*.session-journal` (Contains active login session tokens)
-  > * `config.json` (Contains your list of monitored chats and Rclone remote configurations)
-  > * `archive.db` (Contains your private download history)
-  >
-  > These are already added to `.gitignore` by default. Do not force-commit them.
+ 
