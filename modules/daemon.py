@@ -22,7 +22,7 @@ async def handle_daemon_menu(client, custom_style):
     """Sub-menu to manage the Live Monitor Daemon."""
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[1;36mTelegram Downloader (V2.0.0)\033[0m")
+        print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
         print("\033[1;35m--- LIVE MONITOR DAEMON ---\033[0m")
         
         config = get_config()

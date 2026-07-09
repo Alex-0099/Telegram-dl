@@ -14,6 +14,7 @@ from tqdm import tqdm
 from utils.download import get_config
 from utils.parser import resolve_chat_entity, parse_telegram_link
 from utils.archive import DB_PATH
+from modules.duplicates import run_duplicate_checker
 
 def update_config(new_config):
     """Saves changes back to config.json."""
@@ -79,7 +80,7 @@ async def handle_utilities_menu(client, custom_style):
     """Sleek sub-menu to manage media utility tools."""
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[1;36mTelegram Downloader (V2.0.0)\033[0m")
+        print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
         print("\033[1;35m--- MEDIA & FILE UTILITIES ---\033[0m")
         
         config = get_config()
@@ -93,6 +94,8 @@ async def handle_utilities_menu(client, custom_style):
             choices=[
                 "Extract Audio from Video (Select File)",
                 "Convert WebP Sticker to PNG (Select File)",
+                "Advanced Media Converters (ffmpeg)...",
+                "Scan for Duplicate Media...",
                 "Batch Rename Files",
                 "Organize Folder Files (by Type / message ID)",
                 "Password-Protect / Batch Archive Folder",
@@ -119,6 +122,12 @@ async def handle_utilities_menu(client, custom_style):
             
         elif choice == "Convert WebP Sticker to PNG (Select File)":
             await run_sticker_converter_interactive(config, custom_style)
+            
+        elif choice == "Advanced Media Converters (ffmpeg)...":
+            await run_advanced_converters_interactive(config, custom_style)
+            
+        elif choice == "Scan for Duplicate Media...":
+            await run_duplicate_checker(custom_style)
             
         elif choice == "Batch Rename Files":
             await run_batch_renamer(config, custom_style)
@@ -744,3 +753,285 @@ async def run_batch_archiver(config, custom_style):
             
     print(f"\n🎉 \033[1;32mBatch Archiving complete! Succeeded: {success_count}, Failed: {fail_count}\033[0m")
     await asyncio.sleep(3)
+
+
+# ==========================================
+# 🎥 ADVANCED MEDIA CONVERTERS ENGINE
+# ==========================================
+
+async def get_video_duration(video_path):
+    """Retrieves duration of video in seconds using ffprobe."""
+    try:
+        cmd = [
+            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1", video_path
+        ]
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, _ = await proc.communicate()
+        return float(stdout.strip())
+    except Exception:
+        return None
+
+async def run_advanced_converters_interactive(config, custom_style):
+    """TUI loop for advanced FFmpeg converters."""
+    if not is_ffmpeg_available():
+        print("\n⚠️  \033[1;33m[WARNING] ffmpeg is not installed or not in PATH!\033[0m")
+        print("To run advanced converters, please install ffmpeg on Windows:")
+        print("👉 Run: \033[1;36mwinget install Gyan.FFmpeg\033[0m in a separate terminal, then restart the script.")
+        input("\nPress Enter to return...")
+        return
+        
+    while True:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
+        print("\033[1;35m--- ADVANCED MEDIA CONVERTERS ---\033[0m\n")
+        
+        choice = await questionary.select(
+            "Select conversion utility:",
+            choices=[
+                "🎥 Video Compression (Target File Size)",
+                "🖼️  Video to High-Quality GIF",
+                "🔊 Audio Volumizer / Dynamic Leveling",
+                "❌ Back to Utilities Menu"
+            ],
+            style=custom_style
+        ).ask_async()
+        
+        if choice is None or choice == "❌ Back to Utilities Menu":
+            break
+            
+        chat_folder = await select_chat_folder(config, custom_style)
+        if not chat_folder:
+            continue
+            
+        if "Video Compression" in choice:
+            vids = [f for f in os.listdir(chat_folder) if f.lower().endswith((".mp4", ".mkv", ".avi"))]
+            if not vids:
+                print("\n⚠️  \033[1;33mNo video files (.mp4, .mkv, .avi) found in selected folder.\033[0m")
+                await asyncio.sleep(2)
+                continue
+                
+            selected_vid = await questionary.select(
+                "Select video to compress:",
+                choices=vids + ["Cancel"],
+                style=custom_style
+            ).ask_async()
+            
+            if selected_vid is None or selected_vid == "Cancel":
+                continue
+                
+            input_path = os.path.join(chat_folder, selected_vid)
+            duration = await get_video_duration(input_path)
+            if not duration:
+                print("\n❌ \033[1;31mCould not retrieve video duration. FFprobe failed.\033[0m")
+                await asyncio.sleep(2.5)
+                continue
+                
+            orig_size_mb = os.path.getsize(input_path) / (1024 * 1024)
+            print(f"🎬 Selected Video Duration: {duration:.1f}s | Size: {orig_size_mb:.2f} MB")
+            
+            target_sz_str = await questionary.text(
+                "Enter target file size in MB (e.g. 8 for sharing, 50 for Medium):",
+                default="8",
+                style=custom_style
+            ).ask_async()
+            
+            try:
+                target_sz_mb = float(target_sz_str)
+                if target_sz_mb <= 0 or target_sz_mb >= orig_size_mb:
+                    print("⚠️  Target size must be positive and smaller than original size.")
+                    await asyncio.sleep(2)
+                    continue
+            except ValueError:
+                print("⚠️  Invalid target size.")
+                await asyncio.sleep(2)
+                continue
+                
+            # Calculate bitrates
+            target_size_bytes = target_sz_mb * 1024 * 1024
+            total_bitrate = int((target_size_bytes * 8) / duration)
+            
+            audio_bitrate = 128000
+            video_bitrate = total_bitrate - audio_bitrate
+            if video_bitrate < 64000:
+                video_bitrate = 64000
+                
+            base, ext = os.path.splitext(selected_vid)
+            output_path = os.path.join(chat_folder, f"{base}_compressed{ext}")
+            null_device = "NUL" if os.name == 'nt' else "/dev/null"
+            
+            print(f"\n🔄 \033[1;36mStarting 2-pass compression (Target: {target_sz_mb:.1f} MB)...\033[0m")
+            try:
+                # Pass 1
+                print("   ↳ ⚡ [Pass 1/2] Analyzing video structure...")
+                cmd_pass1 = [
+                    "ffmpeg", "-y", "-i", input_path,
+                    "-c:v", "libx264", "-b:v", str(video_bitrate),
+                    "-pass", "1", "-an", "-f", "null", null_device
+                ]
+                proc1 = await asyncio.create_subprocess_exec(
+                    *cmd_pass1, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                await proc1.communicate()
+                
+                if proc1.returncode != 0:
+                    raise Exception("First pass failed.")
+                    
+                # Pass 2
+                print("   ↳ ⚡ [Pass 2/2] Re-encoding frames and copying audio...")
+                cmd_pass2 = [
+                    "ffmpeg", "-y", "-i", input_path,
+                    "-c:v", "libx264", "-b:v", str(video_bitrate),
+                    "-pass", "2", "-c:a", "aac", "-b:a", str(audio_bitrate),
+                    output_path
+                ]
+                proc2 = await asyncio.create_subprocess_exec(
+                    *cmd_pass2, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                await proc2.communicate()
+                
+                # Cleanup pass log files
+                for f in os.listdir("."):
+                    if f.startswith("ffmpeg2pass"):
+                        try:
+                            os.remove(f)
+                        except Exception:
+                            pass
+                            
+                if proc2.returncode == 0:
+                    new_size_mb = os.path.getsize(output_path) / (1024 * 1024)
+                    print(f"✅ \033[1;32mVideo successfully compressed! New Size: {new_size_mb:.2f} MB (Saved as: {os.path.basename(output_path)})\033[0m")
+                else:
+                    print("❌ \033[1;31mVideo compression failed in second pass.\033[0m")
+            except Exception as e:
+                print(f"❌ \033[1;31mCompression failed: {str(e)}\033[0m")
+            await asyncio.sleep(4)
+            
+        elif "Video to High-Quality GIF" in choice:
+            vids = [f for f in os.listdir(chat_folder) if f.lower().endswith((".mp4", ".mkv", ".avi"))]
+            if not vids:
+                print("\n⚠️  \033[1;33mNo video files found in selected folder.\033[0m")
+                await asyncio.sleep(2)
+                continue
+                
+            selected_vid = await questionary.select(
+                "Select video to convert to GIF:",
+                choices=vids + ["Cancel"],
+                style=custom_style
+            ).ask_async()
+            
+            if selected_vid is None or selected_vid == "Cancel":
+                continue
+                
+            input_path = os.path.join(chat_folder, selected_vid)
+            duration = await get_video_duration(input_path)
+            print(f"🎬 Video Duration: {duration:.1f}s")
+            
+            start_time = await questionary.text(
+                "Enter start time (format: HH:MM:SS or seconds, e.g. 0 or 00:00:05):",
+                default="0",
+                style=custom_style
+            ).ask_async()
+            
+            length_str = await questionary.text(
+                "Enter duration of GIF in seconds:",
+                default="5",
+                style=custom_style
+            ).ask_async()
+            
+            width_str = await questionary.text(
+                "Enter GIF Width (resolution scale, e.g., 480 or 720):",
+                default="480",
+                style=custom_style
+            ).ask_async()
+            
+            fps_str = await questionary.text(
+                "Enter GIF Framerate (FPS, e.g., 10, 15, 24):",
+                default="15",
+                style=custom_style
+            ).ask_async()
+            
+            base = os.path.splitext(selected_vid)[0]
+            output_path = os.path.join(chat_folder, f"{base}_clip.gif")
+            
+            print(f"\n🔄 \033[1;36mGenerating high-quality GIF with custom color palette...\033[0m")
+            try:
+                filter_graph = f"fps={fps_str},scale={width_str}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
+                cmd = [
+                    "ffmpeg", "-y", "-ss", start_time, "-t", length_str,
+                    "-i", input_path, "-filter_complex", filter_graph,
+                    output_path
+                ]
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                await proc.communicate()
+                
+                if proc.returncode == 0:
+                    print(f"✅ \033[1;32mGIF successfully generated! (Saved as: {os.path.basename(output_path)})\033[0m")
+                else:
+                    print("❌ \033[1;31mGIF generation failed.\033[0m")
+            except Exception as e:
+                print(f"❌ \033[1;31mError converting to GIF: {str(e)}\033[0m")
+            await asyncio.sleep(3.5)
+            
+        elif "Audio Volumizer" in choice:
+            audios = [f for f in os.listdir(chat_folder) if f.lower().endswith((".mp3", ".ogg", ".m4a", ".wav"))]
+            if not audios:
+                print("\n⚠️  \033[1;33mNo audio files (.mp3, .ogg, .m4a, .wav) found in selected folder.\033[0m")
+                await asyncio.sleep(2)
+                continue
+                
+            selected_aud = await questionary.select(
+                "Select audio to adjust volume/level:",
+                choices=audios + ["Cancel"],
+                style=custom_style
+            ).ask_async()
+            
+            if selected_aud is None or selected_aud == "Cancel":
+                continue
+                
+            input_path = os.path.join(chat_folder, selected_aud)
+            
+            level_choice = await questionary.select(
+                "Select volume adjustment mode:",
+                choices=[
+                    "🔊 2x Volume Boost (Simple Gain)",
+                    "🎚️  Professional Dynamic Leveling (Loudnorm)",
+                    "❌ Cancel"
+                ],
+                style=custom_style
+            ).ask_async()
+            
+            if level_choice is None or "Cancel" in level_choice:
+                continue
+                
+            base, ext = os.path.splitext(selected_aud)
+            suffix = "_boosted" if "2x Volume Boost" in level_choice else "_leveled"
+            output_path = os.path.join(chat_folder, f"{base}{suffix}{ext}")
+            
+            filter_str = "volume=2.0" if "2x Volume Boost" in level_choice else "loudnorm=I=-16:TP=-1.5:LRA=11"
+            
+            print(f"\n🔄 \033[1;36mProcessing audio leveling...\033[0m")
+            try:
+                cmd = [
+                    "ffmpeg", "-y", "-i", input_path,
+                    "-filter:a", filter_str,
+                    output_path
+                ]
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                await proc.communicate()
+                
+                if proc.returncode == 0:
+                    print(f"✅ \033[1;32mAudio successfully processed! (Saved as: {os.path.basename(output_path)})\033[0m")
+                else:
+                    print("❌ \033[1;31mAudio processing failed.\033[0m")
+            except Exception as e:
+                print(f"❌ \033[1;31mError adjusting audio: {str(e)}\033[0m")
+            await asyncio.sleep(3.5)

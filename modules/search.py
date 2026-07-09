@@ -83,7 +83,7 @@ async def handle_search_menu(custom_style):
         
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[1;36mTelegram Downloader (V2.0.0)\033[0m")
+        print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
         print("\033[1;35m--- OFFLINE SEARCH & HISTORY ---\033[0m\n")
         
         choice = await questionary.select(

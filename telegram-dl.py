@@ -50,7 +50,7 @@ def format_media_types(types_list):
 def print_header():
     """Clears the console and prints the Telegram Downloader header."""
     os.system('cls' if os.name == 'nt' else 'clear')
-    print("\033[1;36mTelegram Downloader (V2.0.0)\033[0m")
+    print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
     
     # Read download dir and allowed types to show status
     config = get_config()

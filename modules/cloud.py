@@ -24,7 +24,7 @@ async def handle_cloud_menu(client, custom_style):
     """Interactive submenu to manage Cloud Backup & TG Mirroring."""
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
-        print("\033[1;36mTelegram Downloader (V2.0.0)\033[0m")
+        print("\033[1;36mTelegram Downloader (V2.8.4)\033[0m")
         print("\033[1;35m--- CLOUD SYNC & TG MIRRORING ---\033[0m")
         
         config = get_config()
