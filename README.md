@@ -36,7 +36,8 @@ telegram-dl/
 ├── config.json           # Interactive configuration parameters (auto-generated)
 ├── requirements.txt      # Python libraries list
 ├── telegram-dl.py        # Main TUI & Menu loop driver
-├── telegram-dl.bat        # Global launch batch script for Windows PATH
+├── telegram-dl.bat       # Global launch batch script for Windows PATH
+├── build.py              # PyInstaller executable builder
 ├── modules/
 │   ├── single.py         # Single file downloader module
 │   ├── range.py          # Message range downloader module (with server-side topic filter)
@@ -57,13 +58,25 @@ telegram-dl/
 
 ## ⚙️ Prerequisites & Setup
 
-### 1. Retrieve Telegram API Credentials
+Choose one of the following methods to run the downloader:
+
+### Option A: Standalone Executable (Zero Setup - Recommended)
+1. Go to the **Releases** tab on the right side of this repository page.
+2. Download the precompiled **`telegram-dl.exe`** binary.
+3. Place the `.exe` in a clean folder and run it.
+4. The program will guide you to set up your API ID, Hash, and phone login interactively! Your keys will be saved locally in `config.json` so you only have to enter them once.
+
+---
+
+### Option B: Run from Source Code (Python Setup)
+
+#### 1. Retrieve Telegram API Credentials
 1. Log in to [my.telegram.org](https://my.telegram.org) using your Telegram phone number.
 2. Go to **API development tools**.
 3. Create a new application (e.g. Title: `Media Downloader CLI`, Short name: `mymediadl`, Platform: `Desktop`).
 4. Note down your `api_id` and `api_hash`.
 
-### 2. Configure Environment Secrets
+#### 2. Configure Environment Secrets
 Duplicate the `.env.example` file, rename it to `.env`, and fill in your credentials:
 ```ini
 TELEGRAM_API_ID=your_api_id
@@ -71,8 +84,8 @@ TELEGRAM_API_HASH=your_api_hash
 TELEGRAM_PHONE=your_phone_number_with_country_code # e.g. +1234567890
 ```
 
-### 3. Install Dependencies
-Make sure you have python 3.8+ installed. Run:
+#### 3. Install Dependencies
+Make sure you have Python 3.8+ installed. Run:
 ```bash
 pip install -r requirements.txt
 ```
@@ -83,17 +96,25 @@ pip install -r requirements.txt
 
 ## 🚀 Running the Downloader
 
+### 1. If using the Python Source:
 Run the main script to launch the interactive TUI:
 ```bash
 python telegram-dl.py
 ```
 
-### Run Globally from Anywhere (Windows)
-We have provided a batch file `telegram-dl.bat`. If you add the `C:\Users\LENOVO\telegram-dl` directory to your User or System `PATH` environment variable, you can run:
+### 2. If running globally from anywhere (Windows Batch):
+If running the Python script, we have provided a batch file `telegram-dl.bat`. Add the directory containing `telegram-dl.bat` to your System `PATH` environment variable, and you can run:
 ```cmd
 telegram-dl
 ```
 from any folder on your computer!
+
+### 3. How to compile the Executable yourself:
+If you want to package the code into a single `.exe` file yourself:
+```bash
+python build.py
+```
+This script will automatically install PyInstaller, compile the source files with size optimizations, and output a standalone binary to the `dist/` directory, cleaning up all intermediate build folders afterward.
 
 ---
 
