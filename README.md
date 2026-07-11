@@ -8,11 +8,20 @@ This downloader provides a sleek, modern keyboard-navigable terminal interface (
 
 ## 🌟 V3.8.5 Key Features
 
+* **Portable & Zero-Setup Executable**: Compiles into a single standalone `.exe` (under 22MB). If no configuration is present, it dynamically prompts for Telegram API credentials and saves them to a self-healing `config.json` next to the executable. Path-persistence logic keeps your logins, database, and settings intact across directories.
 * **Bypasses Save Restrictions**: Naturally bypasses Telegram's client-side copy/forwarding restrictions (e.g., *"Restrict saving content"* in private groups/channels) by directly requesting raw MTProto file chunks.
 * **Resumable Chunk Downloads**: Tracks `.part` temporary downloads on disk. If interrupted, it automatically truncates and resumes from the nearest **4KB boundary** (Telegram requirement). Uses maximum **512KB chunk sizes** to minimize network request latency, boosting download speeds by up to 4x.
+* **Scheduled Queue Manager**: 
+  * Add links, chats, and ranges to a pending download queue to execute later.
+  * Schedule downloads for a specific time and continue using the CLI. The background task keeps track of the schedule.
+  * Displays a real-time countdown timer `Scheduled Queue Manager (⌛ hh:mm:ss)` on the main TUI menu.
+  * Gracefully aborts active prompts and takes over the console to run progress bars cleanly once the timer fires.
 * **Live Monitor Daemon**: Automatically watches specified chats in the background. Features **Bot Session Grouping** with custom inactivity gaps, grouping files sent by request bots into separate time-clustered subfolders (e.g. `Session_2026-07-09_12-30-00/`).
 * **Sleek Web Gallery Generator**: Automatically compiles downloaded files into responsive, glassmorphic HTML galleries (`gallery.html`) containing search filtering, topic/chat views, audio players, video players, and image lightbox overlays.
 * **Advanced Media Utilities**:
+  * **Video Compressor**: Compresses videos to a target file size in MB using 2-pass FFmpeg encoding.
+  * **Video to GIF**: Converts videos to highly-optimized web-friendly GIFs.
+  * **Audio Volumizer**: Adjusts volume and applies dynamic range leveling to audio files.
   * **Audio Extractor**: Converts videos to high-quality MP3s via `ffmpeg` (optionally automated post-download).
   * **Sticker Converter**: Renders WebP stickers to PNG, and decompresses `.tgs` animated stickers to Lottie JSON.
   * **Batch Rename**: Clean names, prefix indexation, and random alphanumeric masks.
@@ -21,7 +30,10 @@ This downloader provides a sleek, modern keyboard-navigable terminal interface (
 * **Cloud Sync & Telegram Mirroring**:
   * **Rclone Integration**: Asynchronously moves/copies downloaded files to Google Drive, Mega, OneDrive, etc., in the background (with optional local cleanup).
   * **Telegram Mirror**: Re-uploads downloaded files in real-time to another private channel or group.
-* **Offline Search & History**: Queries your download history by keywords, chats, or media types. Integrates with the system file explorer to highlight files directly in **Windows Explorer**, **macOS Finder**, or **Linux File Manager**.
+* **Offline Search & History Dashboard**: 
+  * Queries your download history by keywords, chats, or media types.
+  * Integrates with the system file explorer to highlight files directly in **Windows Explorer**, **macOS Finder**, or **Linux File Manager**.
+  * **Statistics Panel**: Visual bar charts showing media breakdown, top 5 chats by storage, and largest files, utilizing double-column alignment for wide CJK characters and emojis.
 * **Global Bandwidth Throttling**: Configure a maximum download speed limit (using Token Bucket rate limiting) across all active concurrent threads.
 
 ---
