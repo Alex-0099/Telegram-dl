@@ -13,9 +13,11 @@ from telethon.errors import FloodWaitError
 from telethon.tl.types import MessageService, MessageActionTopicCreate
 from utils.archive import is_archived, add_to_archive
 
+from utils.auth import PROJECT_ROOT
+
 def get_config():
     """Reads configuration from config.json, fallback to defaults if error."""
-    config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
+    config_path = os.path.join(PROJECT_ROOT, 'config.json')
     defaults = {
         "download_dir": "./downloads",
         "media_types": ["photo", "video", "document", "audio", "voice", "sticker"],
@@ -43,10 +45,18 @@ def get_config():
         "monitor_bot_session_gap_seconds": 60
     }
     if not os.path.exists(config_path):
+        try:
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(defaults, f, indent=4)
+        except Exception:
+            pass
         return defaults
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            user_config = json.load(f)
+        merged = defaults.copy()
+        merged.update(user_config)
+        return merged
     except Exception:
         return defaults
 
@@ -399,9 +409,7 @@ async def download_message_media(client: TelegramClient, message, chat_id, overr
     # Resolve download directory
     download_dir = config.get("download_dir", "./downloads")
     if not os.path.isabs(download_dir):
-        # Resolve relative path from project root
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        download_dir = os.path.join(project_root, download_dir)
+        download_dir = os.path.join(PROJECT_ROOT, download_dir)
         
     # Get safe chat name to build the subfolder
     chat_folder = await get_safe_chat_name(client, message, chat_id)
@@ -728,8 +736,7 @@ def rebuild_all_galleries():
     config = get_config()
     download_dir = config.get("download_dir", "./downloads")
     if not os.path.isabs(download_dir):
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        download_dir = os.path.join(project_root, download_dir)
+        download_dir = os.path.join(PROJECT_ROOT, download_dir)
         
     if not os.path.exists(download_dir):
         return 0

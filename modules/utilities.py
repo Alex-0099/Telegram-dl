@@ -16,9 +16,11 @@ from utils.parser import resolve_chat_entity, parse_telegram_link
 from utils.archive import DB_PATH
 from modules.duplicates import run_duplicate_checker
 
+from utils.auth import PROJECT_ROOT
+
 def update_config(new_config):
     """Saves changes back to config.json."""
-    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config.json')
+    config_path = os.path.join(PROJECT_ROOT, 'config.json')
     try:
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(new_config, f, indent=2)
@@ -46,8 +48,7 @@ async def select_chat_folder(config, custom_style):
     """Helper to let the user select a downloaded chat directory or a custom path."""
     download_dir = config.get("download_dir", "./downloads")
     if not os.path.isabs(download_dir):
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        download_dir = os.path.join(project_root, download_dir)
+        download_dir = os.path.join(PROJECT_ROOT, download_dir)
         
     os.makedirs(download_dir, exist_ok=True)
     

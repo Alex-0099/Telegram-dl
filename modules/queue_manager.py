@@ -9,7 +9,9 @@ from modules.single import download_single
 from modules.range import download_range
 from modules.full import download_full
 
-QUEUE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "queue.json")
+from utils.auth import PROJECT_ROOT
+
+QUEUE_FILE = os.path.join(PROJECT_ROOT, "queue.json")
 
 def load_queue():
     if not os.path.exists(QUEUE_FILE):

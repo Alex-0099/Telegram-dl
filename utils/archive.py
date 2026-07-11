@@ -2,8 +2,10 @@ import os
 import sqlite3
 from datetime import datetime
 
+from utils.auth import PROJECT_ROOT
+
 # Resolve the database path to the project root directory
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'archive.db')
+DB_PATH = os.path.join(PROJECT_ROOT, 'archive.db')
 
 def init_db():
     """Initializes the SQLite archive database and creates the downloads table."""

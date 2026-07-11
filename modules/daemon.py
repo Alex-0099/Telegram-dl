@@ -9,9 +9,11 @@ from tqdm import tqdm
 from utils.download import get_config, download_message_media
 from utils.parser import resolve_chat_entity
 
+from utils.auth import PROJECT_ROOT
+
 def update_config(new_config):
     """Saves changes back to config.json."""
-    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config.json')
+    config_path = os.path.join(PROJECT_ROOT, 'config.json')
     try:
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(new_config, f, indent=2)

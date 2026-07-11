@@ -65,9 +65,11 @@ def print_header():
     print(f"\033[1;30m🔍  {'Allowed Types:'.ljust(18)}\033[0m \033[1;34m{format_media_types(media_types)}\033[0m")
     print()
 
+from utils.auth import PROJECT_ROOT
+
 def update_config_file(new_config):
     """Saves changes back to config.json."""
-    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+    config_path = os.path.join(PROJECT_ROOT, 'config.json')
     try:
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(new_config, f, indent=2)

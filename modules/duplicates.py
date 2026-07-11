@@ -7,7 +7,9 @@ import questionary
 from tqdm import tqdm
 from utils.download import get_config
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "archive.db")
+from utils.auth import PROJECT_ROOT
+
+DB_PATH = os.path.join(PROJECT_ROOT, "archive.db")
 
 def get_fast_hash(file_path):
     """

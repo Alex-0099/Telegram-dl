@@ -39,13 +39,14 @@ def format_size(bytes_val):
         return f"{bytes_val / 1024:.2f} KB"
     return f"{bytes_val} B"
 
+from utils.auth import PROJECT_ROOT
+
 def find_file_on_disk(chat_id, chat_name, filename):
     """Attempts to find the downloaded file in the download directory."""
     config = get_config()
     download_dir = config.get("download_dir", "./downloads")
     if not os.path.isabs(download_dir):
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        download_dir = os.path.join(project_root, download_dir)
+        download_dir = os.path.join(PROJECT_ROOT, download_dir)
         
     if not os.path.exists(download_dir):
         return None
