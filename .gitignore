@@ -21,6 +21,11 @@ config.json
 *.jpg
 *.jpeg
 
+# PyInstaller build outputs
+build/
+dist/
+*.spec
+
 
 # Tests
 test.txt

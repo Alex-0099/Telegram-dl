@@ -1,4 +1,4 @@
-# Telegram Downloader V3.8.4 (CLI) 🚀
+# Telegram Downloader V3.8.5 (CLI) 🚀
 
 An advanced, high-performance, asynchronous userbot-style Telegram media downloader built in Python using the **Telethon** MTProto library. 
 
@@ -6,7 +6,7 @@ This downloader provides a sleek, modern keyboard-navigable terminal interface (
 
 ---
 
-## 🌟 V3.8.4 Key Features
+## 🌟 V3.8.5 Key Features
 
 * **Bypasses Save Restrictions**: Naturally bypasses Telegram's client-side copy/forwarding restrictions (e.g., *"Restrict saving content"* in private groups/channels) by directly requesting raw MTProto file chunks.
 * **Resumable Chunk Downloads**: Tracks `.part` temporary downloads on disk. If interrupted, it automatically truncates and resumes from the nearest **4KB boundary** (Telegram requirement). Uses maximum **512KB chunk sizes** to minimize network request latency, boosting download speeds by up to 4x.
