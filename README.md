@@ -27,6 +27,7 @@ This downloader provides a sleek, modern keyboard-navigable terminal interface (
   * **Batch Rename**: Clean names, prefix indexation, and random alphanumeric masks.
   * **Folder Organizer**: Sorts downloaded folders into categorized directories (Images, Videos, Docs, Audio, Archives).
   * **7-Zip password archiving**: Creates secure, AES-256 encrypted `.7z` or `.zip` archives.
+  * **Duplicate Media Checker**: Scans download directories for identical files using a fast, collision-free signature hashing algorithm (combining file size with header and footer bytes) to find and remove duplicates interactively.
 * **Cloud Sync & Telegram Mirroring**:
   * **Rclone Integration**: Asynchronously moves/copies downloaded files to Google Drive, Mega, OneDrive, etc., in the background (with optional local cleanup).
   * **Telegram Mirror**: Re-uploads downloaded files in real-time to another private channel or group.
