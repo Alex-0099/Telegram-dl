@@ -17,6 +17,7 @@ ENV/
 downloads/
 *.db
 config.json
+queue.json
 *.png
 *.jpg
 *.jpeg
