@@ -534,12 +534,6 @@ async def main():
                     await asyncio.sleep(1.5)
                     continue
                 else:
-                    # Confirm filters before starting
-                    if not await confirm_filters_and_start("Single Download"):
-                        print("\n⚠️ \033[1;33mDownload cancelled.\033[0m")
-                        await asyncio.sleep(1.5)
-                        continue
-                        
                     print("\n🚀 \033[1;36mStarting download...\033[0m")
                     await download_single(client, link)
                     input("\n⌨️ Press Enter to return to menu...")
